@@ -227,6 +227,13 @@ input[type=file]{display:none;}
 .s-region{font-weight:700;letter-spacing:.08em;}
 .s-course{font-weight:700;word-break:keep-all;line-height:1.35;}
 .s-id{color:var(--sub);font-weight:600;}
+.cl-edit{background:#FFF8D6;border:2.5px solid #DC2626;border-radius:11px;padding:12px 14px 10px;margin:0 0 14px;box-shadow:0 3px 10px rgba(220,38,38,.15);}
+.cl-edit-h{font-size:16px;font-weight:900;color:#B91C1C;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;}
+.cl-edit-h span{font-size:11.5px;font-weight:800;color:#fff;background:#DC2626;padding:2px 8px;border-radius:12px;}
+.cl-edit textarea{width:100%;min-height:92px;padding:10px 12px;border:2px solid #F87171;border-radius:8px;background:#fff;
+  font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:22px;font-weight:800;color:#0F172A;line-height:1.55;resize:vertical;text-align:center;white-space:pre;overflow-x:auto;}
+.cl-edit textarea:focus{outline:none;border-color:#DC2626;box-shadow:0 0 0 4px rgba(220,38,38,.18);}
+.cl-edit-f{font-size:11px;font-weight:600;color:#92400E;margin-top:5px;}
 .cl-rules{margin-top:12px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:9px;padding:10px 11px;font-size:11.5px;color:#334155;line-height:1.55;}
 .cl-rules:empty{display:none;}
 .cl-h{font-size:12.5px;font-weight:800;color:#0F172A;margin-bottom:6px;}
@@ -942,11 +949,11 @@ function makePanel(panelId, sp, onChange){
   grp1.appendChild(lw);
 
   /* 과정명 직접 편집 (Enter = 줄바꿈) */
-  const ew=document.createElement('div'); ew.className='sp-item';
+  const ew=document.createElement('div'); ew.className='sp-item cl-edit';
   const isEx = panelId==='spPanel';
-  ew.innerHTML=`<div class="sp-hdr"><span class="sp-name">과정명 직접 편집</span><span class="sp-val" style="color:#DC2626;">Enter=줄바꿈</span></div>
-    <textarea rows="2" style="width:100%;padding:7px 9px;border:1.5px solid #FCA5A5;border-radius:7px;font-family:inherit;font-size:13px;font-weight:700;resize:vertical;line-height:1.5;"></textarea>
-    <div style="font-size:10.5px;color:#64748B;margin-top:2px;">${isEx?'모든 명찰에 적용':'수기 입력한 모든 명찰에 일괄 적용'} · 띄어쓰기도 그대로 출력</div>`;
+  ew.innerHTML=`<div class="cl-edit-h">✏️ 과정명 직접 편집 <span>⏎ Enter = 줄바꿈</span></div>
+    <textarea rows="2" wrap="off" spellcheck="false" placeholder="예) 실무책임자리더십&#10;(임파워먼트와 조직관리)5차"></textarea>
+    <div class="cl-edit-f">${isEx?'모든 명찰에 적용':'수기 입력한 모든 명찰에 일괄 적용'} · 띄어쓰기·줄 위치 그대로 출력</div>`;
   const eta=ew.querySelector('textarea');
   eta.value = isEx ? document.getElementById('c-course-text').value : ((manualData[0]&&manualData[0].course)||'');
   eta.oninput=()=>{
@@ -955,7 +962,10 @@ function makePanel(panelId, sp, onChange){
     if(eta.value.includes('\n') && lsel.value!=='manual' && lsel.value!=='one'){ lsel.value='manual'; sp['course-lines']='manual'; }
     onChange();
   };
-  grp1.appendChild(ew);
+  /* 넓은 미리보기 영역 맨 위에 배치 (잘 보이게) */
+  const col=el.nextElementSibling;
+  if(col){ col.querySelectorAll(':scope > .cl-edit').forEach(x=>x.remove()); col.insertBefore(ew, col.firstChild); }
+  else grp1.appendChild(ew);
 
   Object.keys(DEFS).filter(k=>k!=='course-lines').forEach(key => {
     const isPx = key.startsWith('fs-');
