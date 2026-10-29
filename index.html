@@ -326,7 +326,7 @@ input[type=file]{display:none;}
 .pl-thumb .plate{transform-origin:top left;}
 
 /* 명패 본체 (화면 1cm = 34px) */
-.plate{width:680px;height:272px;background:#fff;position:relative;overflow:hidden;display:flex;
+.plate{width:680px;height:272px;background:#fff;position:relative;overflow:visible;display:flex;
   font-family:'Noto Sans KR','Malgun Gothic',sans-serif;}
 .plate .pin{display:flex;width:100%;height:100%;position:relative;overflow:visible;}
 .plate .left{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;flex-shrink:0;}
@@ -370,7 +370,7 @@ input[type=file]{display:none;}
 .pl-a4{transform-origin:top center;}
 .pl-a4{width:714px;height:1010px;background:#fff;border:1.5px solid #CBD5E1;position:relative;
   margin:0 auto;box-shadow:0 3px 16px rgba(0,60,130,.12);}
-.pl-slot{position:absolute;left:17px;width:680px;height:272px;border:1px dashed #CBD5E1;overflow:hidden;}
+.pl-slot{position:absolute;left:17px;width:680px;height:272px;border:1px dashed #CBD5E1;overflow:visible;}
 .pl-slot.t{top:219px;}
 .pl-slot.t{transform:rotate(180deg);}
 .pl-slot.b{top:505px;}
@@ -386,7 +386,7 @@ input[type=file]{display:none;}
 .plp-cv{position:absolute;top:0;height:100%;border-left:0.5px dashed #1E6FD9;z-index:5;}
 .plp-ch{position:absolute;left:0;width:100%;border-top:0.5px dashed #1E6FD9;z-index:5;}
 .plp-note{position:absolute;font-size:11px;font-weight:700;color:#1E6FD9;white-space:nowrap;}
-.plp-slot{position:absolute;width:755.9px;height:302.36px;overflow:hidden;}
+.plp-slot{position:absolute;width:755.9px;height:302.36px;overflow:visible;}
 .plp-slot.t{transform:rotate(180deg);}   /* 위쪽 = 뒷면(거꾸로) */
 .plp-slot.b{}                            /* 아래쪽 = 앞면(정방향) */
 .plp-fold{position:absolute;width:771px;border-top:0.5px dashed #AEB6BE;}
@@ -811,14 +811,15 @@ input[type=file]{display:none;}
 
         <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:13px 16px;margin-bottom:12px;">
           <div class="pl-cutnote">
-            <div class="cn-t">✂️ 칼질은 <span class="cn-big">딱 2번!</span></div>
-            <div class="cn-s">인쇄 후 <b class="cn-blue">파란 점선</b>만 자르세요 &nbsp;<span class="cn-pill">① 오른쪽 세로선</span> <span class="cn-pill">② 아래쪽 가로선</span></div>
-            <div class="cn-x">왼쪽·위쪽은 종이 끝 그대로 · 가운데 회색 점선은 <b>접는 선</b> · 미리보기에서 파란 점선을 <b>마우스로 끌어</b> 위치 조정</div>
+            <div class="cn-t">✂️ 칼질은 <span class="cn-big" id="cnNum">4번</span></div>
+            <div class="cn-s">인쇄 후 <b class="cn-blue">파란 점선</b>만 자르세요 &nbsp;<span id="cnPills"></span></div>
+            <div class="cn-x"><span id="cnEdge"></span>가운데 회색 점선은 <b>접는 선</b> · 미리보기에서 오른쪽·아래 파란 점선은 <b>마우스로 끌어</b> 위치 조정</div>
           </div>
           <div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:9px;">📐 용지 배치 (재단 횟수)</div>
           <div style="display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:14px;">
             <select id="plPaperMode" onchange="plSetPaper()" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;">
-              <option value="corner">★ 좌상단 밀착 — 칼질 2번 (우측·하단)</option>
+              <option value="bleed">★ 사방 6mm — 칼질 4번 (로고 꽉 채움·권장)</option>
+              <option value="corner">좌상단 밀착 — 칼질 2번 (로고 흰 줄 가능)</option>
               <option value="safe">안전 여백 0.5cm — 재단 4번</option>
               <option value="center">용지 중앙 — 재단 4번</option>
             </select>
@@ -1627,7 +1628,8 @@ const PL_AUTO={
 
 let plWB=null, plRows=[], plHdrs=[], plPage=0;
 let plSP={A:{...PL_DEFS.A},B:{...PL_DEFS.B},C:{...PL_DEFS.C}};
-const PL_INIT={design:'B', mode:'corner', ml:0, mt:0, frame:5, fold:'top', guide:'thin', cutX:198, cutY:160};
+const PL_BLEED_MM=2;   /* 로고 색 재단 여유 (자르는 선 밖으로 더 칠하는 폭) */
+const PL_INIT={design:'B', mode:'bleed', ml:0.6, mt:0.6, frame:5, fold:'top', guide:'thin', cutX:198, cutY:160};
 if(window.MG_CFG && MG_CFG.B){
   const c=MG_CFG.B;
   if(c.sp) ['A','B','C'].forEach(t=>{ if(c.sp[t]) Object.assign(PL_DEFS[t], c.sp[t]); });
@@ -1803,12 +1805,12 @@ function plApply(p,sp,mul){
   const M=v=>v*mul;
   p.style.width=M(680)+'px'; p.style.height=M(272)+'px';
   const FR=plFrame*3.4; p.style.padding=M(FR)+'px';
-  /* 로고 블록을 명패 위쪽·왼쪽 끝까지 채움 (흰 테두리 위로 확장, 아래쪽은 유지) */
-  const bleed = (p.classList.contains('A')||p.classList.contains('B'));
-  const ex = bleed ? M(FR) : 0;
-  left.style.marginLeft=(-ex)+'px'; left.style.marginTop=(-ex)+'px';
-  left.style.width=(M(sp.logoW)+ex)+'px';
-  left.style.height=`calc(100% + ${ex}px)`; left.style.alignSelf='flex-start';
+  /* 로고 네이비 : 위(접는 선)·왼쪽·아래 끝까지 채움 + 자르는 쪽(왼쪽·아래)은 재단 여유 2mm 더 칠함 */
+  const full = (p.classList.contains('A')||p.classList.contains('B'));
+  const ex = full ? M(FR) : 0, bl = full ? M(PL_BLEED_MM*3.4) : 0;
+  left.style.marginLeft=(-ex-bl)+'px'; left.style.marginTop=(-ex)+'px';
+  left.style.width=(M(sp.logoW)+ex+bl)+'px';
+  left.style.height=`calc(100% + ${2*ex+bl}px)`; left.style.alignSelf='flex-start';
   lg.style.width=M(sp.logoImg)+'px'; lg.style.height='auto';
   g.style.fontSize=M(sp.fsG)+'px';
   pos.style.fontSize=M(sp.fsPos)+'px'; pos.style.fontWeight=sp.wPos;
@@ -1925,7 +1927,8 @@ function plCopyAll(){
 let plPaper={ml:PL_INIT.ml, mt:PL_INIT.mt}, plFrame=PL_INIT.frame;
 let plCut={x:PL_INIT.cutX, y:PL_INIT.cutY};   /* 재단선 위치 mm (명패 왼쪽·위쪽 기준) */
 const PL_PAPER={
-  corner:{ml:0, mt:0,  t:'✂ 우측 세로 1번 + 하단 가로 1번 = 총 2번'},
+  bleed :{ml:0.6, mt:0.6, t:'✂ 4번 (왼쪽·오른쪽·위·아래) — 로고 네이비 꽉 참'},
+  corner:{ml:0, mt:0,  t:'✂ 우측 세로 1번 + 하단 가로 1번 = 총 2번 (로고 한쪽 흰 줄 생길 수 있음)'},
   safe  :{ml:0.5, mt:0.5,  t:'✂ 상·하·좌·우 4번 (프린터 여백 안전)'},
   center:{ml:0.5, mt:6.45, t:'✂ 상·하·좌·우 4번 (중앙 배치)'}
 };
@@ -1961,8 +1964,24 @@ function plCutClamp(){
   plCut.x=Math.max(PL_CUT_LIM.x[0],Math.min(PL_CUT_LIM.x[1]-plPaper.ml*10,Math.round(plCut.x*2)/2));
   plCut.y=Math.max(PL_CUT_LIM.y[0],Math.min(PL_CUT_LIM.y[1],Math.round(plCut.y*2)/2));
 }
+/* 자르는 선 목록 (왼쪽·위쪽은 종이 끝에 붙으면 자를 필요 없음) */
+function plCutList(){
+  const a=[]; if(plPaper.ml>0) a.push('왼쪽 세로'); a.push('오른쪽 세로'); if(plPaper.mt>0) a.push('위쪽 가로'); a.push('아래쪽 가로');
+  return a;
+}
 function plCutShow(){
   const L=plPaper.ml*34, T=plPaper.mt*34;
+  const cl=plCutList(), nb=['①','②','③','④'];
+  const e1=document.getElementById('cnNum'); if(e1){
+    e1.textContent=cl.length+'번';
+    document.getElementById('cnPills').innerHTML=cl.map((c,i)=>`<span class="cn-pill">${nb[i]} ${c}</span>`).join(' ');
+    document.getElementById('cnEdge').textContent = (plPaper.ml>0&&plPaper.mt>0) ? '' :
+      ((plPaper.ml>0?'':'왼쪽')+(plPaper.ml>0||plPaper.mt>0?'':'·')+(plPaper.mt>0?'':'위쪽')+'은 종이 끝 그대로 · ');
+  }
+  const l0=document.getElementById('plCutV0'), t0=document.getElementById('plCutH0');
+  if(l0){ l0.style.left=L+'px'; l0.style.display=plPaper.ml>0?'':'none'; }
+  if(t0){ t0.style.top=T+'px'; t0.style.display=plPaper.mt>0?'':'none'; }
+  const nt=document.getElementById('plCutNote'); if(nt) nt.textContent='✂ 파란 점선 '+cl.length+'곳 자르기 : '+cl.map((c,i)=>nb[i]+' '+c).join('  ')+'  (오른쪽·아래는 마우스로 이동)';
   const v=document.getElementById('plCutV'), h=document.getElementById('plCutH'), n=document.getElementById('plCutNote');
   if(v){ v.style.left=(L+plCut.x*3.4)+'px'; v.querySelector('.tag').textContent='↔ '+plCut.x.toFixed(1)+'mm'; }
   if(h){ h.style.top=(T+plCut.y*3.4)+'px'; h.querySelector('.tag').textContent='↕ '+plCut.y.toFixed(1)+'mm'; }
@@ -2028,6 +2047,8 @@ function plRenderA4(){
      <div class="pl-foldlbl" style="top:${T+H-18}px;left:${Math.max(2,L-14)}px;">▲ 접는 선 (이쪽이 케이스 위로)</div>
      <div class="pl-face" style="top:${T+2*H+4}px;right:${714-L-680+8}px;">앞면 (정방향)</div>
      <div class="pl-slot b" style="left:${L}px;top:${T+H}px;"><div class="plate ${plDesign}">${plHTML(plDesign,d)}</div></div>
+     <div style="position:absolute;top:0;height:100%;border-left:2px dashed #1E6FD9;" id="plCutV0"></div>
+     <div style="position:absolute;left:0;width:100%;border-top:2px dashed #1E6FD9;" id="plCutH0"></div>
      <div class="pl-cutv" id="plCutV" style="left:${L+plCut.x*3.4}px;"><span class="tag"></span></div>
      <div class="pl-cuth" id="plCutH" style="top:${T+plCut.y*3.4}px;"><span class="tag"></span></div>
      <div id="plCutNote" style="position:absolute;top:${T+plCut.y*3.4+22}px;left:${L+8}px;font-size:12px;font-weight:800;color:#1E6FD9;">✂ 파란 점선 2곳만 자르기 : ① 오른쪽 세로 ② 아래쪽 가로 &nbsp;(마우스로 끌어서 이동)</div>`;
@@ -2072,7 +2093,7 @@ function plBuild(){
   plCut={x:PL_INIT.cutX, y:PL_INIT.cutY};
   document.getElementById('plFoldDir').value=PL_INIT.fold;
   document.getElementById('plGuide').value=PL_INIT.guide;
-  if(PL_INIT.mode!=='corner'||PL_INIT.ml||PL_INIT.mt) document.getElementById('plPaperHint').textContent='✂ 좌 '+PL_INIT.ml+'cm / 상 '+PL_INIT.mt+'cm (관리자 기본값)';
+  if(window.MG_CFG && MG_CFG.B) document.getElementById('plPaperHint').textContent='✂ 좌 '+PL_INIT.ml+'cm / 상 '+PL_INIT.mt+'cm (관리자 기본값)';
   plSetGuide(); plSetFold();
   requestAnimationFrame(()=>{ plBuildPicks(); plRenderA4(); plBuildPrint(null); });
 }
@@ -2086,9 +2107,11 @@ function plBuildPrint(set){
     const pg=document.createElement('div'); pg.className='plp-page';
     const L=plPaper.ml*37.795, T=plPaper.mt*37.795, H=302.36, W=755.9;
     pg.innerHTML=
-      `<div class="plp-cv" style="left:${L+plCut.x*3.7795}px;"></div>
+      `${plPaper.ml>0?`<div class="plp-cv" style="left:${L}px;"></div>`:''}
+       <div class="plp-cv" style="left:${L+plCut.x*3.7795}px;"></div>
+       ${plPaper.mt>0?`<div class="plp-ch" style="top:${T}px;"></div>`:''}
        <div class="plp-ch" style="top:${T+plCut.y*3.7795}px;"></div>
-       <div class="plp-note" style="left:${L+10}px;top:${T+plCut.y*3.7795+10}px;">✂ 파란 점선 2곳만 자르세요 : ① 오른쪽 세로선 ② 아래쪽 가로선 · 회색 점선 = 접는 선</div>
+       <div class="plp-note" style="left:${L+10}px;top:${T+plCut.y*3.7795+16}px;">✂ 파란 점선 ${plCutList().length}곳만 자르세요 : ${plCutList().map((c,i)=>['①','②','③','④'][i]+' '+c).join('  ')} · 회색 점선 = 접는 선</div>
        <div class="plp-slot t" style="left:${L}px;top:${T}px;"><div class="plate ${plDesign}">${plHTML(plDesign,d)}</div></div>
        <div class="plp-fold" style="left:${Math.max(0,L-8)}px;top:${T+H}px;"></div>
        <div class="plp-slot b" style="left:${L}px;top:${T+H}px;"><div class="plate ${plDesign}">${plHTML(plDesign,d)}</div></div>`;
