@@ -1823,24 +1823,27 @@ function plApply(p,sp,mul){
   gapEl.style.width='0px';
   right.style.transform='none';
 
-  const gapPN=M(sp.gapPN);
-  const gW=g.offsetWidth;
-  const posW=pos.offsetWidth;
-  const nmW=nm.offsetWidth;
-  let target=Math.max(gW, posW+nmW+gapPN);
-
-  /* 명패 폭 초과 시 : 간격은 유지하고 전체를 비율 축소 */
+  /* 위(지역+금고명)와 아래(이사장+성명)를 따로 처리 — 아래 글자 크기는 항상 고정 */
   const avail=M(680-2*FR-sp.logoW-30);
-
+  const gapPN=M(sp.gapPN);
+  const posW=pos.offsetWidth, nmW=nm.offsetWidth;
+  const bW=posW+nmW+gapPN;                       /* 아래 줄 기본 폭 (고정) */
+  let gW=g.offsetWidth;
+  if(gW>avail){ g.style.fontSize=(M(sp.fsG)*avail/gW)+'px'; gW=g.offsetWidth; }   /* 위 줄만 한 줄에 맞게 축소 */
+  /* 위아래 폭 맞춤 : 위가 길면 아래 '이사장↔성명' 간격만 벌림 (글자 크기는 그대로) */
+  const target=Math.min(Math.max(gW,bW),avail);
+  const gapW=Math.max(gapPN,target-posW-nmW);
+  const tW = gW<bW ? Math.min(bW,avail) : gW;      /* 위 줄이 짧으면 자간을 벌려 아래 폭에 맞춤 */
   const gN=g.textContent.replace(/\s/g,'').length;
-  if(gN>1){ const ex=(target-gW)/gN; g.style.letterSpacing=ex+'px'; g.style.marginRight=(-ex)+'px'; }
-  gapEl.style.width=Math.max(M(10), target-posW-nmW)+'px';
-  rule.style.width=target+'px';
-
-  /* 자연폭이 여유보다 크면(자간을 줄여도 안 맞으면) 전체 축소 */
-  const k = target>avail ? avail/target : 1;
+  if(gN>1 && tW>gW){ const e=(tW-gW)/gN; g.style.letterSpacing=e+'px'; g.style.marginRight=(-e)+'px'; }
+  gapEl.style.width=gapW+'px';
+  rule.style.width=Math.min(target,avail)+'px';
+  /* 이름이 아주 길어 아래 줄이 폭을 넘을 때만 아래 줄을 축소 */
+  const rowW=posW+nmW+gapW, row=p.querySelector('.row');
+  const kb = rowW>avail ? avail/rowW : 1;
+  row.style.transformOrigin='center center'; row.style.transform=kb<1?`scale(${kb})`:'none';
   right.style.transformOrigin='center center';
-  right.style.transform=`translateY(${M(sp.offsetY)}px) scale(${k})`;
+  right.style.transform=`translateY(${M(sp.offsetY)}px)`;
 }
 
 /* ── 디자인 선택 카드 ── */
